@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>读取Excel文件数据</title>
+    <!-- 预加载关键资源 -->
+    <link rel="preconnect" href="https://cdn.bootcdn.net">
+    <style>
+        /* 全局样式设置 */
+        * {
+            box-sizing: border-box;
+        }
+        
+        /* 页面基本样式设置 */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 20px;
+            overflow: auto; /* 页面水平和垂直滚动 */
+            background-color: #f8f9fa;
+        }
+    
+        /* 控制区域容器 */
+        .control-panel {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 25px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        /* 文件选择区域 */
+        .file-selection {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .file-selection label {
+            font-weight: 600;
+            color: #34495e;
+        }
+        
+        /* 隐藏默认文件输入框 */
+        #fileInput {
+            display: none;
+        }
+        
+        /* 自定义文件选择按钮样式 */
+        .custom-file-upload {
+            display: inline-block;
+            padding: 14px 15px;
+            color: black;
+            border: 2px dashed #3498db;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 150px;
+            width: 100%;
+        }
+        
+        /* 拖拽区域样式 */
+        .custom-file-upload.dragover {
+            background-color: #e1f0fa;
+            border: 2px dashed #2980b9;
+            color: black;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+
+        /* 搜索区域 */ 
+        #searchInput {
+            padding: 14px 15px;
+            min-width: 258px;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            width: 100%;
+            text-align: center;
+        }
+        
+        /* 搜索框获得焦点时的样式 */
+        #searchInput:focus {
+            outline: none;
+            border-color: #2980b9;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        /* 搜索提示文本样式 */
+        .search-hint {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
+        /* 表格基本样式 */
+        table {
+            border-collapse: collapse;
+            width: auto; /* 根据内容自动调整宽度 */
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            table-layout: auto; /* 自动表格布局，允许单元格根据内容调整宽度 */
+        }
+        
+        /* 表格单元格样式 */
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px 15px;
+            text-align: center; /* 水平居中 */
+            vertical-align: middle; /* 垂直居中 */
+            white-space: nowrap; /* 不换行 */
+            overflow: visible; /* 允许内容溢出 */
+            text-overflow: clip; /* 不显示省略号，显示完整内容 */
+            min-width: 80px; /* 设置最小宽度 */
+        }
+        
+        /* 表头样式 */
+        thead th {
+            background-color: #3498db;
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            position: sticky; /* 固定表头 */
+            top: 0; /* 固定在顶部 */
+            z-index: 10; /* 确保表头在其他元素之上 */
+        }
+        
+        /* 确保表头在容器内也能固定 */
+        .table-wrapper thead th {
+            position: sticky !important;
+            top: 0 !important;
+            background-color: #3498db; /* 确保背景色不被覆盖 */
+        }
+        
+        /* 额外确保表头固定 */
+        table thead {
+            position: sticky;
+            top: 0;
+        }
+        
+        /* 确保表格容器正确设置 */
+        .table-wrapper {
+            overflow: auto;
+            position: relative;
+        }
+        
+        /* 最终确保表头固定 */
+        .table-wrapper table thead th {
+            position: sticky !important;
+            top: 0 !important;
+        }
+        
+        /* 表格数据行样式 */
+        td {
+            background-color: #f9f9f9;
+        }
+        
+        /* 偶数行背景色 */
+        tr:nth-child(even) td {
+            background-color: #f2f2f2;
+        }
+        
+        /* 鼠标悬停行背景色 */
+        tr:hover td {
+            background-color: #e1f0fa;
+        }
+        
+        /* 错误提示样式 */
+        .error {
+            color: #e74c3c;
+            background-color: #fdeded;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #e74c3c;
+            margin: 15px 0;
+        }
+        
+        /* 成功提示样式 */
+        .success {
+            color: #27ae60;
+            background-color: #e8f7f0;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #27ae60;
+            margin: 15px 0;
+        }
+        
+        /* 合并数据表格样式 */
+        .merged-data-table {
+            margin-top: 40px;
+            width: 100%;
+        }
+        
+        .merged-data-table h2 {
+            color: #333;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 540px) {
+            /* 控制面板在小屏幕上的样式 */
+            .control-panel {
+                padding: 15px;
+            }
+            
+            /* 文件选择区域在小屏幕上的样式 */
+            .file-selection {
+                width: 100%;
+            }
+            
+            /* 搜索框区域在小屏幕上的样式 */
+            .search-box {
+                width: 100%;
+            }
+            
+            /* 表格在小屏幕上的样式 */
+            table {
+                font-size: 14px;
+            }
+            
+            /* 表格单元格在小屏幕上的样式 */
+            th, td {
+                padding: 8px 10px;
+                min-width: 60px;
+            }
+            
+            /* 文件上传按钮在小屏幕上的样式 */
+            .custom-file-upload {
+                height: 70px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+        
+        /* 标签页样式 */
+        .tab-container {
+            margin: 20px 0;
+            width: 100%;
+        }
+        
+        /* 标签按钮容器 */
+        .tab-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        /* 标签按钮样式 */
+        .tab-button {
+            padding: 12px 20px;
+            background-color: #f1f8ff;
+            border: none;
+            cursor: pointer;
+            border-radius: 6px 6px 0 0;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+        
+        /* 标签按钮悬停效果 */
+        .tab-button:hover {
+            background-color: #d1e7ff;
+        }
+        
+        /* 激活的标签按钮样式 */
+        .tab-button.active {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        /* 标签内容样式 */
+        .tab-content {
+            display: none;
+            width: 100%;
+        }
+        
+        /* 激活的标签内容样式 */
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* 滚动条容器 */
+        .table-wrapper {
+            overflow-x: auto; /* 只允许水平滚动 */
+            overflow-y: visible; /* 禁用垂直滚动 */
+            width: 100%;
+            position: relative; /* 确保容器定位上下文正确 */
+        }
+        
+        /* 页面内容容器 */
+        .content-container {
+            width: 100%;
+            overflow: auto;
+        }
+        
+        /* 高亮显示搜索结果 */
+        .highlight {
+            background-color: #ffeb3b;
+            font-weight: bold;
+        }
+        
+        /* 平均值特殊颜色标注 */
+        .average-value {
+            color: #e91e63;
+            font-weight: bold;
+        }
+        
+        /* 参数值方括号间隔 */
+        .param-value {
+            margin-right: 2px;
+        }
+        
+        /* 分页控件样式 */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .pagination-info {
+            margin-right: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .page-size-select {
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .page-btn {
+            padding: 8px 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .page-btn:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+        
+        .page-btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .page-btn.active {
+            background-color: #2980b9;
+            font-weight: bold;
+        }
+        
+        .page-info {
+            font-weight: 500;
+            color: #34495e;
+        }
+        
+        .page-info span {
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        /* 加载提示样式 */
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #3498db;
+        }
+        
+        /* 隐藏元素样式 */
+        .hidden {
+            display: none;
+        }
+        
+        /* 模式切换按钮容器 */
+        .mode-toggle-container {
+            margin-top: 20px;
+        }
+        
+        /* 自定义提示信息样式 */
+        .custom-tooltip {
+            position: absolute;
+            background-color: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 1000;
+            font-size: 14px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            pointer-events: none;
+            transform: translateX(-50%);
+        }
+        
+        /* 提示信息小箭头 */
+        .custom-tooltip::before {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+        
+        /* 底部提示信息小箭头 */
+        .custom-tooltip.tooltip-bottom::before {
+            top: -10px;
+            border-color: transparent transparent #333 transparent;
+        }
+        
+
+    </style>
+</head>
+<body>
+    <!-- 控制面板 -->
+    <div class="control-panel">
+        <!-- 文件选择区域 -->
+        <div class="file-selection">
+            <input type="file" id="fileInput" accept=".xlsx, .xls">
+            <label for="fileInput" class="custom-file-upload" id="uploadButton">
+                <span>选择或拖拽文件到此处</span>
+            </label>
+        </div>
+        
+        <!-- 搜索区域 -->
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="输入型号或批次关键字进行搜索">
+        </div>
+    </div>
+    
+    <!-- 结果提示信息显示区域 -->
+    <div id="result"></div>
+    
+    <!-- 表格数据显示区域 -->
+    <div id="tableContainer"></div>
+
+    <!-- 引入SheetJS库用于处理Excel文件 -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" async></script>
+    
+    <script>
+        // 页面加载完成后检查XLSX库是否加载成功
+        window.addEventListener('load', function() {
+            // 添加加载状态检查
+            const checkXLSX = setInterval(function() {
+                if (typeof XLSX !== 'undefined') {
+                    clearInterval(checkXLSX);
+                    // XLSX库加载成功
+                    console.log('Excel处理库加载成功');
+                }
+            }, 100);
+            
+            // 5秒后停止检查
+            setTimeout(function() {
+                clearInterval(checkXLSX);
+                if (typeof XLSX === 'undefined') {
+                    document.getElementById('result').innerHTML = '<p class="error">Excel处理库加载失败，请检查网络连接后刷新页面</p>';
+                }
+            }, 5000);
+        });
+        
+        // 为文件输入框添加change事件监听器
+        document.getElementById('fileInput').addEventListener('change', handleFile);
+        
+        // 为搜索框添加实时输入事件监听器
+        document.getElementById('searchInput').addEventListener('input', handleSearch);
+        
+        // 添加拖拽上传功能到自定义按钮
+        const uploadButton = document.getElementById('uploadButton');
+        const fileInput = document.getElementById('fileInput');
+        
+        // 阻止默认的拖拽行为
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            uploadButton.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        // 添加拖拽样式
+        ['dragenter', 'dragover'].forEach(eventName => {
+            uploadButton.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            uploadButton.addEventListener(eventName, unhighlight, false);
+        });
+        
+        // 处理文件拖拽
+        uploadButton.addEventListener('drop', handleDrop, false);
+        
+        /**
+         * 阻止默认的拖拽行为
+         * @param {Event} e - 事件对象
+         */
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        /**
+         * 拖拽进入时的高亮效果
+         */
+        function highlight() {
+            uploadButton.classList.add('dragover');
+        }
+        
+        /**
+         * 拖拽离开时取消高亮效果
+         */
+        function unhighlight() {
+            uploadButton.classList.remove('dragover');
+        }
+        
+        /**
+         * 处理文件拖拽
+         * @param {DragEvent} e - 拖拽事件对象
+         */
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            // 检查是否有文件被拖拽
+            if (files.length) {
+                // 检查文件类型
+                const file = files[0];
+                const fileName = file.name.toLowerCase();
+                
+                // 只接受.xlsx和.xls文件
+                if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                    // 设置文件到文件输入框
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    fileInput.files = dataTransfer.files;
+                    
+                    // 触发change事件以自动读取文件
+                    const event = new Event('change', { bubbles: true });
+                    fileInput.dispatchEvent(event);
+                } else {
+                    // 显示错误信息
+                    document.getElementById('result').innerHTML = '<p class="error">请选择Excel文件 (.xlsx 或 .xls)</p>';
+                }
+            }
+        }
+        
+        // 存储原始数据用于搜索
+        let originalMergedData = {};
+        
+        // 分页相关变量
+        let currentPage = {}; // 当前页码
+        let pageSize = {};   // 每页显示条数
+        let totalPages = {}; // 总页数
+        
+        // 当前激活的工作表
+        let activeSheetName = null;
+        
+        // 数据显示模式：'average' 表示显示平均值，'all' 表示显示所有参数
+        let displayMode = 'average';
+        
+        /**
+         * 切换数据显示模式
+         * @param {string} mode - 显示模式 ('average' 或 'all')
+         */
+        function toggleDisplayMode(mode) {
+            displayMode = mode;
+            
+            // 重新渲染当前数据
+            if (originalMergedData && Object.keys(originalMergedData).length > 0) {
+                // 获取当前搜索词
+                const searchTerm = getSearchTerm();
+                // 使用通用搜索过滤函数
+                const filteredData = filterData(searchTerm);
+                // 重新渲染表格
+                renderMergedDataBelow(filteredData);
+            }
+        }
+        
+        /**
+         * 处理用户选择的Excel文件
+         * 1. 检查是否选择了文件
+         * 2. 使用FileReader读取文件
+         * 3. 解析Excel文件并显示结果
+         */
+        function handleFile() {
+            // 获取文件输入元素和选中的文件
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            
+            // 检查用户是否选择了文件
+            if (!file) {
+                // 如果没有选择文件，不执行任何操作，保持当前显示的数据
+                return;
+            }
+            
+            // 检查XLSX库是否已加载
+            if (typeof XLSX === 'undefined') {
+                document.getElementById('result').innerHTML = '<p class="error">Excel处理库尚未加载完成，请稍后再试</p>';
+                return;
+            }
+            
+            // 创建文件读取器对象
+            const reader = new FileReader();
+            
+            // 文件读取成功的回调函数
+            reader.onload = function(e) {
+                try {
+                    // 将文件数据转换为Uint8Array格式
+                    const data = new Uint8Array(e.target.result);
+                    console.log(data);
+                    
+                    // 使用SheetJS读取Excel工作簿
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    console.log(workbook);
+                    
+                    // 将工作簿转换为JSON格式
+                    const jsonData = convertWorkbookToJSON(workbook);
+                    
+                    // 在浏览器控制台打印JSON数据
+                    console.log('Excel数据 (JSON格式):', jsonData);
+                    
+                    // 详细遍历每个工作表中的对象
+                    traverseJSONData(jsonData);
+                
+                } catch (error) {
+                    // 处理文件读取或解析错误
+                    document.getElementById('result').innerHTML = '<p class="error">读取文件时出错: ' + error.message + '</p>';
+                }
+            };
+            
+            // 文件读取失败的回调函数
+            reader.onerror = function() {
+                document.getElementById('result').innerHTML = '<p class="error">文件读取失败</p>';
+            };
+            
+            // 以ArrayBuffer格式读取文件内容
+            reader.readAsArrayBuffer(file);
+        }
+        
+        /**
+         * 获取搜索词
+         * @returns {string} 搜索词
+         */
+        function getSearchTerm() {
+            return document.getElementById('searchInput').value.trim();
+        }
+        
+        /**
+         * 通用搜索过滤函数
+         * @param {string} searchTerm - 搜索词
+         * @returns {Object} 过滤后的数据
+         */
+        function filterData(searchTerm) {
+            const filteredData = {};
+            
+            // 在所有工作表中搜索
+            for (const sheetName in originalMergedData) {
+                const sheetData = originalMergedData[sheetName];
+                filteredData[sheetName] = [];
+                
+                // 如果没有搜索词，返回所有数据
+                if (!searchTerm) {
+                    filteredData[sheetName] = [...sheetData];
+                    continue;
+                }
+                
+                // 过滤数据 - 只在型号和批次字段中搜索
+                sheetData.forEach(row => {
+                    // 检查型号和批次字段是否包含搜索词（不区分大小写）
+                    const model = row['型号'] ? row['型号'].toString() : '';
+                    const batch = row['批次'] ? row['批次'].toString() : '';
+                    
+                    const modelMatch = model.toLowerCase().includes(searchTerm.toLowerCase());
+                    const batchMatch = batch.toLowerCase().includes(searchTerm.toLowerCase());
+                    
+                    // 如果满足搜索条件，则添加到结果中
+                    if (modelMatch || batchMatch) {
+                        filteredData[sheetName].push(row);
+                    }
+                });
+            }
+            
+            return filteredData;
+        }
+        
+        /**
+         * 处理实时搜索功能 - 对型号和批次进行模糊查询
+         */
+        function handleSearch() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            
+            // 如果没有原始数据，直接返回
+            if (!originalMergedData || Object.keys(originalMergedData).length === 0) {
+                return;
+            }
+            
+            // 使用通用搜索过滤函数
+            const filteredData = filterData(searchTerm);
+            
+            // 显示当前激活工作表的搜索结果数量
+            let resultMessage = '';
+            if (searchTerm) {
+                if (activeSheetName && filteredData[activeSheetName]) {
+                    const currentSheetResults = filteredData[activeSheetName].length;
+                    if (currentSheetResults > 0) {
+                        resultMessage = `<p class="success">在工作表 "${activeSheetName}" 中找到 ${currentSheetResults} 条匹配记录</p>`;
+                    } else {
+                        resultMessage = `<p class="error">在工作表 "${activeSheetName}" 中未找到匹配的记录</p>`;
+                    }
+                } else {
+                    // 如果没有激活的工作表，显示总结果
+                    let totalResults = 0;
+                    for (const sheetName in filteredData) {
+                        totalResults += filteredData[sheetName].length;
+                    }
+                    
+                    if (totalResults > 0) {
+                        resultMessage = `<p class="success">找到 ${totalResults} 条匹配记录</p>`;
+                    } else {
+                        resultMessage = '<p class="error">未找到匹配的记录</p>';
+                    }
+                }
+            }
+            
+            const resultElement = document.getElementById('result');
+            resultElement.innerHTML = resultMessage;
+            
+            // 重置分页数据
+            initPaginationData(filteredData);
+            
+            // 重新渲染表格以显示高亮效果并保持显示模式
+            renderMergedDataBelow(filteredData);
+        }
+        
+        /**
+         * 初始化分页数据
+         * @param {Object} data - 数据对象
+         */
+        function initPaginationData(data) {
+            for (const sheetName in data) {
+                currentPage[sheetName] = 1; // 默认第一页
+                // 只有当pageSize尚未设置时才设置默认值
+                if (pageSize[sheetName] === undefined) {
+                    pageSize[sheetName] = 15;   // 默认每页15条
+                }
+                totalPages[sheetName] = Math.ceil(data[sheetName].length / pageSize[sheetName]);
+            }
+        }
+        
+        /**
+         * 计算数组的平均值
+         * @param {Array} arr - 数字数组
+         * @returns {number} 平均值
+         */
+        function calculateAverage(arr) {
+            if (!Array.isArray(arr) || arr.length === 0) {
+                return 0;
+            }
+            
+            // 过滤出数字值
+            const numbers = arr.filter(value => !isNaN(parseFloat(value))).map(value => parseFloat(value));
+            
+            if (numbers.length === 0) {
+                return 0;
+            }
+            
+            const sum = numbers.reduce((acc, num) => acc + num, 0);
+            return sum / numbers.length;
+        }
+        
+        /**
+         * 将Excel工作簿转换为JSON格式
+         * @param {Object} workbook - Excel工作簿对象
+         * @returns {Object} 包含所有工作表数据的JSON对象
+         */
+        function convertWorkbookToJSON(workbook) {
+            const result = {};
+            
+            // 遍历所有工作表名称
+            workbook.SheetNames.forEach(function(sheetName) {
+                const worksheet = workbook.Sheets[sheetName];
+                // 将工作表转换为JSON数据（使用默认的header设置，这样会包含列名）
+                result[sheetName] = XLSX.utils.sheet_to_json(worksheet);
+            });
+            
+            return result;
+        }
+        
+        /**
+         * 合并字段值到目标对象
+         * @param {Object} targetObj - 目标对象
+         * @param {string} key - 字段名
+         * @param {any} value - 字段值
+         * @param {boolean} isIdentifier - 是否为标识字段（型号或批次）
+         */
+        function mergeFieldValue(targetObj, key, value, isIdentifier) {
+            // 对于标识字段不过滤，其他字段只保留数字类型值
+            if (!isIdentifier && (isNaN(parseFloat(value)) || !isFinite(value))) {
+                return;
+            }
+            
+            // 处理字段名相似的情况，将它们合并到同一个数组中
+            let baseKey = key;
+            // 检查是否有带_数字后缀的字段名
+            const suffixMatch = key.match(/^(.*)_([0-9]+)$/);
+            if (suffixMatch) {
+                baseKey = suffixMatch[1];
+            }
+            
+            // 查找是否已存在基础字段名
+            let existingKey = null;
+            for (const existingField in targetObj) {
+                const existingSuffixMatch = existingField.match(/^(.*)_([0-9]+)$/);
+                let existingBaseKey = existingField;
+                if (existingSuffixMatch) {
+                    existingBaseKey = existingSuffixMatch[1];
+                }
+                
+                if (existingBaseKey === baseKey) {
+                    existingKey = existingField;
+                    break;
+                }
+            }
+            
+            // 如果字段已存在，则转换为数组并添加新值
+            if (existingKey) {
+                if (!Array.isArray(targetObj[existingKey])) {
+                    targetObj[existingKey] = [targetObj[existingKey]];
+                }
+                targetObj[existingKey].push(isIdentifier ? value : parseFloat(value));
+            } else {
+                targetObj[key] = isIdentifier ? value : parseFloat(value);
+            }
+        }
+        
+        /**
+         * 高亮显示搜索关键词
+         * @param {string} text - 要高亮的文本
+         * @param {string} searchTerm - 搜索词
+         * @returns {string} 高亮处理后的文本
+         */
+        function highlightSearchTerm(text, searchTerm) {
+            if (!searchTerm || !text) {
+                return text;
+            }
+            
+            // 转义特殊字符
+            const escapedSearchTerm = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escapedSearchTerm})`, 'gi');
+            
+            // 使用highlight类包装匹配的文本
+            return text.toString().replace(regex, '<span class="highlight">$1</span>');
+        }
+        
+        /**
+         * 遍历并打印JSON数据到控制台
+         * @param {Object} jsonData - 包含Excel数据的JSON对象
+         */
+        function traverseJSONData(jsonData) {     
+            let newObj = {}       
+            // 遍历每个工作表
+            for (const sheetName in jsonData) {
+                newObj[sheetName] = []
+
+                console.log(`\n工作表名称: ${sheetName}`);
+                const sheetData = jsonData[sheetName];        
+                // 遍历工作表中的每一行数据
+                for (let index = 0; index < sheetData.length; index++) {
+                    const row = sheetData[index];
+                    if (row['型号']) {
+                        // 创建一个新的合并对象，包含当前行和往后两条数据的所有参数
+                        const mergedRow = {};
+                        
+                        // 合并当前行数据（过滤空值）
+                        for (const key in row) {
+                            if (row[key] !== null && row[key] !== undefined && row[key] !== '') {
+                                // 检查是否为型号或批次字段
+                                const isIdentifier = (key === '型号' || key === '批次');
+                                mergeFieldValue(mergedRow, key, row[key], isIdentifier);
+                            }
+                        }
+                        
+                        // 合并下一行数据（过滤空值）
+                        if (index + 1 < sheetData.length) {
+                            const nextRow = sheetData[index + 1];
+                            for (const key in nextRow) {
+                                if (nextRow[key] !== null && nextRow[key] !== undefined && nextRow[key] !== '') {
+                                    // 检查是否为型号或批次字段
+                                    const isIdentifier = (key === '型号' || key === '批次');
+                                    mergeFieldValue(mergedRow, key, nextRow[key], isIdentifier);
+                                }
+                            }
+                        }
+                        
+                        // 合并下两行数据（过滤空值）
+                        if (index + 2 < sheetData.length) {
+                            const nextNextRow = sheetData[index + 2];
+                            for (const key in nextNextRow) {
+                                if (nextNextRow[key] !== null && nextNextRow[key] !== undefined && nextNextRow[key] !== '') {
+                                    // 检查是否为型号或批次字段
+                                    const isIdentifier = (key === '型号' || key === '批次');
+                                    mergeFieldValue(mergedRow, key, nextNextRow[key], isIdentifier);
+                                }
+                            }
+                        }
+                        
+                        // 将合并后的对象添加到结果数组中
+                        newObj[sheetName].push(mergedRow);
+                        
+                        // 跳过已处理的行
+                        index += 2;
+                    }
+                }
+            }
+            console.log(newObj);
+            
+            // 保存原始数据用于搜索
+            originalMergedData = JSON.parse(JSON.stringify(newObj));
+            
+            // 初始化分页数据
+            initPaginationData(newObj);
+            
+            // 将合并后的数据渲染到页面中（在原有表格下方）
+            renderMergedDataBelow(newObj);
+        }
+        
+        /**
+         * 在原有表格下方渲染合并后的数据（支持分页）
+         * @param {Object} mergedData - 合并后的数据对象
+         */
+        function renderMergedDataBelow(mergedData) {
+            const tableContainer = document.getElementById('tableContainer');
+            
+            // 清空容器内容，只显示处理后的数据
+            tableContainer.innerHTML = '';
+            
+            // 获取当前搜索词
+            const searchTerm = getSearchTerm();
+            
+            // 创建一个新的div来包含合并后的数据
+            let mergedDataHTML = '<div id="mergedDataContainer">';
+            
+            // 创建标签页容器
+            mergedDataHTML += '<div class="tab-container">';
+            mergedDataHTML += '<div class="tab-buttons">';
+            
+            // 收集所有工作表名称
+            const sheetNames = Object.keys(mergedData);
+            
+            // 为每个工作表创建标签按钮，并显示匹配记录数量
+            sheetNames.forEach((sheetName, index) => {
+                // 如果没有记录当前激活的工作表，则默认激活第一个
+                const isActive = activeSheetName ? (activeSheetName === sheetName) : (index === 0);
+                
+                // 获取当前工作表的匹配记录数量
+                let matchCount = 0;
+                if (originalMergedData && originalMergedData[sheetName]) {
+                    // 如果有搜索词，计算匹配数量
+                    const filteredData = filterData(searchTerm);
+                    matchCount = filteredData[sheetName].length;
+                }
+                
+                // 构造按钮文本，包含工作表名称和匹配数量
+                const buttonText = `${sheetName} (${matchCount})`;
+                mergedDataHTML += `<button class="tab-button ${isActive ? 'active' : ''}" onclick="switchTab('${sheetName}', 'merged')">${buttonText}</button>`;
+            });
+            
+            mergedDataHTML += '</div>';
+            mergedDataHTML += '<div class="tab-contents">';
+            
+            // 为每个工作表创建标签页
+            sheetNames.forEach((sheetName, index) => {
+                const sheetData = mergedData[sheetName];
+                
+                // 创建标签内容
+                // 如果没有记录当前激活的工作表，则默认激活第一个
+                const isContentActive = activeSheetName ? (activeSheetName === sheetName) : (index === 0);
+                mergedDataHTML += `<div id="tab-merged-${sheetName}" class="tab-content ${isContentActive ? 'active' : ''}">`;
+                
+                // 检查工作表是否为空
+                if (sheetData.length === 0) {
+                    mergedDataHTML += `<h3>工作表: ${sheetName}</h3><p>此工作表中没有数据</p>`;
+                } else {
+                    // 添加显示模式切换按钮
+                    mergedDataHTML += '<div class="mode-toggle-container">';
+                    mergedDataHTML += `    <button class="page-btn ${displayMode === 'average' ? 'active' : ''}" onclick="toggleDisplayMode('average')">平均值</button>`;
+                    mergedDataHTML += `    <button class="page-btn ${displayMode === 'all' ? 'active' : ''}" onclick="toggleDisplayMode('all')" style="margin-left: 10px;">参数</button>`;
+                    mergedDataHTML += '</div>';
+                    
+                    // 计算当前页数据
+                    const start = (currentPage[sheetName] - 1) * pageSize[sheetName];
+                    const end = start + pageSize[sheetName];
+                    const pageData = sheetData.slice(start, end);
+                    
+                    mergedDataHTML += '<div class="table-wrapper">'; // 添加滚动容器
+                    mergedDataHTML += '<table>';
+                    
+                    // 收集所有唯一的字段名作为表头
+                    const allKeys = new Set();
+                    sheetData.forEach(row => {
+                        Object.keys(row).forEach(key => allKeys.add(key));
+                    });
+                    
+                    // 创建表头
+                    mergedDataHTML += '<thead><tr>';
+                    allKeys.forEach(key => {
+                        // 根据内容长度设置列宽
+                        const contentLength = key.length;
+                        const estimatedWidth = Math.max(contentLength * 10, 80); // 估算宽度，最小80px
+                        // 表头不需要高亮
+                        mergedDataHTML += `<th style="width: ${estimatedWidth}px;">${key}</th>`;
+                    });
+                    mergedDataHTML += '</tr></thead>';
+                    
+                    // 创建表格主体
+                    mergedDataHTML += '<tbody>';
+                    pageData.forEach((row, index) => {
+                        mergedDataHTML += '<tr>';
+                        
+                        // 为每个字段填充数据
+                        allKeys.forEach(key => {
+                            const value = row[key];
+                            let displayValue = '';
+                            let tooltip = ''; // 用于存储提示信息
+                            
+                            if (value === undefined || value === null) {
+                                displayValue = '';
+                            } else if (Array.isArray(value)) {
+                                // 根据显示模式决定如何显示数据
+                                const average = calculateAverage(value);
+                                if (displayMode === 'average') {
+                                    // 默认显示平均值，并添加鼠标悬停提示信息
+                                    displayValue = `<span class="average-value" data-tooltip="${value.map(v => `[${v}]`).join(' ')}">${average.toFixed(2)}</span>`;
+                                } else {
+                                    // 显示所有参数值
+                                    const bracketValues = value.map(v => 
+                                        `<span class="param-value">[${highlightSearchTerm(v, searchTerm)}]</span>`
+                                    ).join('');
+                                    displayValue = `${bracketValues} (<span class="average-value">${average.toFixed(2)}</span>)`;
+                                }
+                            } else {
+                                // 对普通值进行高亮处理
+                                displayValue = highlightSearchTerm(value, searchTerm);
+                            }
+                            
+                            // 根据内容长度设置单元格宽度
+                            const contentLength = displayValue.length;
+                            const estimatedWidth = Math.max(contentLength * 8, 80); // 估算宽度，最小80px
+                            // 如果有提示信息，使用data-tooltip属性
+                            const tooltipAttr = tooltip ? ` data-tooltip="${tooltip}"` : '';
+                            mergedDataHTML += `<td style="width: ${estimatedWidth}px;"${tooltipAttr}>${displayValue}</td>`;
+                        });
+                        
+                        mergedDataHTML += '</tr>';
+                    });
+                    mergedDataHTML += '</tbody></table>';
+                    mergedDataHTML += '</div>'; // 关闭滚动容器
+                    
+                    // 添加分页控件
+                    mergedDataHTML += '<div class="pagination-container">';
+                    mergedDataHTML += '    <div class="pagination-info">';
+                    mergedDataHTML += '        <span>每页显示 <select id="pageSizeSelect-' + sheetName + '" class="page-size-select" onchange="changePageSize(\'' + sheetName + '\')">';
+                    mergedDataHTML += '            <option value="10" ' + (pageSize[sheetName] == 10 ? 'selected' : '') + '>10</option>';
+                    mergedDataHTML += '            <option value="15" ' + (pageSize[sheetName] == 15 ? 'selected' : '') + '>15</option>';
+                    mergedDataHTML += '            <option value="20" ' + (pageSize[sheetName] == 20 ? 'selected' : '') + '>20</option>';
+                    mergedDataHTML += '            <option value="25" ' + (pageSize[sheetName] == 25 ? 'selected' : '') + '>25</option>';
+                    mergedDataHTML += '            <option value="30" ' + (pageSize[sheetName] == 30 ? 'selected' : '') + '>30</option>';
+                    mergedDataHTML += '        </select> 条记录</span>';
+                    mergedDataHTML += '    </div>';
+                    mergedDataHTML += '    <div class="pagination-controls">';
+                    mergedDataHTML += '        <button class="page-btn" id="firstPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', 1)">首页</button>';
+                    mergedDataHTML += '        <button class="page-btn" id="prevPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', currentPage[\'' + sheetName + '\'] - 1)">上一页</button>';
+                    mergedDataHTML += '        <span class="page-info" id="pageInfo-' + sheetName + '">第 <span id="current-' + sheetName + '">' + currentPage[sheetName] + '</span> 页，共 <span id="total-' + sheetName + '">' + totalPages[sheetName] + '</span> 页</span>';
+                    mergedDataHTML += '        <button class="page-btn" id="nextPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', currentPage[\'' + sheetName + '\'] + 1)">下一页</button>';
+                    mergedDataHTML += '        <button class="page-btn" id="lastPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', totalPages[\'' + sheetName + '\'])">末页</button>';
+                    mergedDataHTML += '    </div>';
+                    mergedDataHTML += '</div>';
+                }
+                
+                mergedDataHTML += '</div>'; // 关闭 tab-content
+            });
+            
+            mergedDataHTML += '</div>'; // 关闭 tab-contents
+            mergedDataHTML += '</div>'; // 关闭 tab-container
+            mergedDataHTML += '</div>'; // 关闭 mergedDataContainer
+            
+            // 将生成的表格HTML添加到页面中
+            tableContainer.innerHTML = mergedDataHTML;
+        }
+        
+        /**
+         * 更新搜索结果提示信息
+         * @param {string} sheetName - 工作表名称
+         */
+        function updateSearchResultInfo(sheetName) {
+            // 获取搜索词
+            const searchTerm = getSearchTerm();
+            
+            // 如果没有搜索词，清除结果提示
+            if (!searchTerm) {
+                document.getElementById('result').innerHTML = '';
+                return;
+            }
+            
+            // 使用通用搜索过滤函数获取匹配数据
+            const filteredData = filterData(searchTerm);
+            
+            // 计算当前工作表的匹配记录数量
+            let matchCount = 0;
+            if (filteredData && filteredData[sheetName]) {
+                matchCount = filteredData[sheetName].length;
+            }
+            
+            // 更新结果提示信息
+            const resultElement = document.getElementById('result');
+            if (matchCount > 0) {
+                resultElement.innerHTML = `<p class="success">在工作表 "${sheetName}" 中找到 ${matchCount} 条匹配记录</p>`;
+            } else {
+                resultElement.innerHTML = `<p class="error">在工作表 "${sheetName}" 中未找到匹配的记录</p>`;
+            }
+        }
+        
+        /**
+         * 改变每页显示条数
+         * @param {string} sheetName - 工作表名称
+         */
+        function changePageSize(sheetName) {
+            const selectElement = document.getElementById('pageSizeSelect-' + sheetName);
+            pageSize[sheetName] = parseInt(selectElement.value);
+            currentPage[sheetName] = 1; // 重置到第一页
+            
+            // 重新应用搜索过滤
+            const searchTerm = getSearchTerm();
+            const filteredData = filterData(searchTerm);
+            
+            // 更新当前工作表的总页数
+            totalPages[sheetName] = Math.ceil(filteredData[sheetName].length / pageSize[sheetName]);
+            
+            // 重新渲染表格以保持高亮效果和显示模式
+            renderMergedDataBelow(filteredData);
+        }
+        
+        /**
+         * 切换页面
+         * @param {string} sheetName - 工作表名称
+         * @param {number} page - 页码
+         */
+        function changePage(sheetName, page) {
+            // 边界检查
+            if (page < 1 || page > totalPages[sheetName]) {
+                return;
+            }
+            
+            currentPage[sheetName] = page;
+            
+            // 获取当前搜索词
+            const searchTerm = getSearchTerm();
+            
+            // 使用通用搜索过滤函数
+            const filteredData = filterData(searchTerm);
+            
+            // 重新渲染表格以保持高亮效果和显示模式
+            renderMergedDataBelow(filteredData);
+        }
+        
+        /**
+         * 切换标签页
+         * @param {string} sheetName - 工作表名称
+         * @param {string} type - 标签页类型（'original' 或 'merged'）
+         */
+        function switchTab(sheetName, type = 'original') {
+            // 记录当前激活的工作表
+            activeSheetName = sheetName;
+            
+            let tabButtons, tabContents;
+            
+            if (type === 'merged') {
+                const mergedDataContainer = document.getElementById('mergedDataContainer');
+                if (!mergedDataContainer) return;
+                tabButtons = mergedDataContainer.querySelectorAll('.tab-button');
+                tabContents = mergedDataContainer.querySelectorAll('.tab-content');
+            } else {
+                tabButtons = document.querySelectorAll('.tab-button');
+                tabContents = document.querySelectorAll('.tab-content');
+            }
+            
+            // 移除所有激活状态
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 激活当前标签页
+            const activeButton = Array.from(tabButtons).find(button => button.textContent.startsWith(sheetName + ' ('));
+            if (activeButton) {
+                activeButton.classList.add('active');
+            }
+            
+            const activeContent = document.getElementById(`tab-${type === 'merged' ? 'merged-' : ''}${sheetName}`);
+            if (activeContent) {
+                activeContent.classList.add('active');
+            }
+            
+            // 更新搜索结果提示信息
+            updateSearchResultInfo(sheetName);
+            
+            // 重新渲染当前数据以保持显示模式
+            if (originalMergedData && Object.keys(originalMergedData).length > 0) {
+                // 获取当前搜索词
+                const searchTerm = getSearchTerm();
+                // 使用通用搜索过滤函数
+                const filteredData = filterData(searchTerm);
+                // 重新渲染表格
+                renderMergedDataBelow(filteredData);
+            }
+        }
+        
+        // 添加鼠标事件监听器来处理自定义提示信息
+        document.addEventListener('mouseover', function(e) {
+            // 检查目标元素或其父元素是否有data-tooltip属性
+            let target = e.target;
+            while (target && target !== document) {
+                if (target.hasAttribute && target.hasAttribute('data-tooltip')) {
+                    // 创建自定义提示信息
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'custom-tooltip';
+                    tooltip.textContent = target.getAttribute('data-tooltip');
+                    
+                    // 添加到页面中以计算尺寸
+                    document.body.appendChild(tooltip);
+                    
+                    // 设置提示信息位置
+                    const rect = target.getBoundingClientRect();
+                    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+                    
+                    // 计算提示信息的位置，确保不会超出视窗边界
+                    let top = rect.top + scrollTop - tooltip.offsetHeight - 10;
+                    let left = rect.left + scrollLeft + rect.width / 2;
+                    
+                    // 获取视窗尺寸
+                    const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+                    const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+                    
+                    // 确保提示信息不会超出左边界
+                    if (left - tooltip.offsetWidth / 2 < 0) {
+                        left = tooltip.offsetWidth / 2;
+                    }
+                    
+                    // 确保提示信息不会超出右边界
+                    if (left + tooltip.offsetWidth / 2 > windowWidth) {
+                        left = windowWidth - tooltip.offsetWidth / 2;
+                    }
+                    
+                    // 如果提示信息会超出顶部边界，则显示在元素下方
+                    if (top < 0) {
+                        top = rect.top + scrollTop + rect.height + 10;
+                        // 修改箭头方向
+                        tooltip.classList.add('tooltip-bottom');
+                    }
+                    
+                    tooltip.style.top = top + 'px';
+                    tooltip.style.left = left + 'px';
+                    
+                    // 存储引用以便稍后移除
+                    target._tooltip = tooltip;
+                    return;
+                }
+                target = target.parentElement;
+            }
+        });
+        
+        document.addEventListener('mouseout', function(e) {
+            // 检查目标元素或其父元素是否有自定义提示信息
+            let target = e.target;
+            while (target && target !== document) {
+                if (target._tooltip) {
+                    // 移除提示信息
+                    document.body.removeChild(target._tooltip);
+                    delete target._tooltip;
+                    return;
+                }
+                target = target.parentElement;
+            }
+        });
+
+    </script>
+</body>
+</html>
