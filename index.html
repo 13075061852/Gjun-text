@@ -69,6 +69,14 @@
             width: 100%;
         }
         
+        /* 精准查询按钮样式 */
+        #preciseSearchBtn {
+            height: 50px;
+            font-size: 16px;
+            width: 120px;
+            padding: 5px;
+        }
+        
         /* 拖拽区域样式 */
         .custom-file-upload.dragover {
             background-color: #e1f0fa;
@@ -86,7 +94,32 @@
             font-size: 16px;
             transition: border-color 0.3s;
             width: 100%;
-            text-align: center;
+        }
+        
+        /* 搜索框区域 */
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        /* 响应式设计 - 小屏幕 */
+        @media (max-width: 768px) {
+            .search-box {
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            #searchInput {
+                min-width: auto;
+            }
+            
+            #preciseSearchBtn {
+                height: auto;
+                padding: 14px 15px;
+                margin-left: 0;
+            }
         }
         
         /* 搜索框获得焦点时的样式 */
@@ -457,6 +490,7 @@
         <!-- 搜索区域 -->
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="输入型号或批次关键字进行搜索">
+            <button id="preciseSearchBtn" class="page-btn" onclick="handlePreciseSearch()">精准查询</button>
         </div>
     </div>
     
@@ -478,6 +512,9 @@
                     clearInterval(checkXLSX);
                     // XLSX库加载成功
                     console.log('Excel处理库加载成功');
+                    
+                    // 尝试加载默认测试文件
+                    loadDefaultTestFile();
                 }
             }, 100);
             
@@ -586,6 +623,9 @@
         // 数据显示模式：'average' 表示显示平均值，'all' 表示显示所有参数
         let displayMode = 'average';
         
+        // 搜索模式：false 表示模糊查询，true 表示精准查询
+        let isPreciseSearch = false;
+        
         /**
          * 切换数据显示模式
          * @param {string} mode - 显示模式 ('average' 或 'all')
@@ -597,8 +637,8 @@
             if (originalMergedData && Object.keys(originalMergedData).length > 0) {
                 // 获取当前搜索词
                 const searchTerm = getSearchTerm();
-                // 使用通用搜索过滤函数
-                const filteredData = filterData(searchTerm);
+                // 使用通用搜索过滤函数，保持搜索模式
+                const filteredData = filterData(searchTerm, isPreciseSearch);
                 // 重新渲染表格
                 renderMergedDataBelow(filteredData);
             }
@@ -617,7 +657,8 @@
             
             // 检查用户是否选择了文件
             if (!file) {
-                // 如果没有选择文件，不执行任何操作，保持当前显示的数据
+                // 如果没有选择文件，尝试加载默认测试文件
+                loadDefaultTestFile();
                 return;
             }
             
@@ -666,6 +707,59 @@
         }
         
         /**
+         * 加载默认测试文件
+         */
+        function loadDefaultTestFile() {
+            // 检查XLSX库是否已加载
+            if (typeof XLSX === 'undefined') {
+                document.getElementById('result').innerHTML = '<p class="error">Excel处理库尚未加载完成，请稍后再试</p>';
+                return;
+            }
+            
+            // 创建XMLHttpRequest对象来加载本地测试文件
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '测试数据.xlsx', true);
+            xhr.responseType = 'arraybuffer';
+            
+            xhr.onload = function(e) {
+                if (xhr.status === 200) {
+                    try {
+                        // 将文件数据转换为Uint8Array格式
+                        const data = new Uint8Array(xhr.response);
+                        console.log(data);
+                        
+                        // 使用SheetJS读取Excel工作簿
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        console.log(workbook);
+                        
+                        // 将工作簿转换为JSON格式
+                        const jsonData = convertWorkbookToJSON(workbook);
+                        
+                        // 在浏览器控制台打印JSON数据
+                        console.log('Excel数据 (JSON格式):', jsonData);
+                        
+                        // 详细遍历每个工作表中的对象
+                        traverseJSONData(jsonData);
+                        
+                        // 显示成功消息
+                        document.getElementById('result').innerHTML = '<p class="success">已成功加载默认测试文件</p>';
+                    } catch (error) {
+                        // 处理文件读取或解析错误
+                        document.getElementById('result').innerHTML = '<p class="error">读取默认测试文件时出错: ' + error.message + '</p>';
+                    }
+                } else {
+                    document.getElementById('result').innerHTML = '<p class="error">无法加载默认测试文件，请确保文件存在</p>';
+                }
+            };
+            
+            xhr.onerror = function() {
+                document.getElementById('result').innerHTML = '<p class="error">加载默认测试文件失败</p>';
+            };
+            
+            xhr.send();
+        }
+        
+        /**
          * 获取搜索词
          * @returns {string} 搜索词
          */
@@ -676,9 +770,10 @@
         /**
          * 通用搜索过滤函数
          * @param {string} searchTerm - 搜索词
+         * @param {boolean} isPrecise - 是否为精准查询
          * @returns {Object} 过滤后的数据
          */
-        function filterData(searchTerm) {
+        function filterData(searchTerm, isPrecise = false) {
             const filteredData = {};
             
             // 在所有工作表中搜索
@@ -698,8 +793,17 @@
                     const model = row['型号'] ? row['型号'].toString() : '';
                     const batch = row['批次'] ? row['批次'].toString() : '';
                     
-                    const modelMatch = model.toLowerCase().includes(searchTerm.toLowerCase());
-                    const batchMatch = batch.toLowerCase().includes(searchTerm.toLowerCase());
+                    let modelMatch, batchMatch;
+                    
+                    if (isPrecise) {
+                        // 精准查询：必须完全匹配
+                        modelMatch = model.toLowerCase() === searchTerm.toLowerCase();
+                        batchMatch = batch.toLowerCase() === searchTerm.toLowerCase();
+                    } else {
+                        // 模糊查询：包含即可
+                        modelMatch = model.toLowerCase().includes(searchTerm.toLowerCase());
+                        batchMatch = batch.toLowerCase().includes(searchTerm.toLowerCase());
+                    }
                     
                     // 如果满足搜索条件，则添加到结果中
                     if (modelMatch || batchMatch) {
@@ -717,13 +821,16 @@
         function handleSearch() {
             const searchTerm = document.getElementById('searchInput').value.trim();
             
+            // 设置搜索模式为模糊查询
+            isPreciseSearch = false;
+            
             // 如果没有原始数据，直接返回
             if (!originalMergedData || Object.keys(originalMergedData).length === 0) {
                 return;
             }
             
-            // 使用通用搜索过滤函数
-            const filteredData = filterData(searchTerm);
+            // 使用通用搜索过滤函数（模糊查询）
+            const filteredData = filterData(searchTerm, false);
             
             // 显示当前激活工作表的搜索结果数量
             let resultMessage = '';
@@ -746,6 +853,58 @@
                         resultMessage = `<p class="success">找到 ${totalResults} 条匹配记录</p>`;
                     } else {
                         resultMessage = '<p class="error">未找到匹配的记录</p>';
+                    }
+                }
+            }
+            
+            const resultElement = document.getElementById('result');
+            resultElement.innerHTML = resultMessage;
+            
+            // 重置分页数据
+            initPaginationData(filteredData);
+            
+            // 重新渲染表格以显示高亮效果并保持显示模式
+            renderMergedDataBelow(filteredData);
+        }
+        
+        /**
+         * 处理精准查询功能 - 输入内容和查询结果必须完全一致
+         */
+        function handlePreciseSearch() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            
+            // 设置搜索模式为精准查询
+            isPreciseSearch = true;
+            
+            // 如果没有原始数据或搜索词为空，直接返回
+            if (!originalMergedData || Object.keys(originalMergedData).length === 0 || !searchTerm) {
+                return;
+            }
+            
+            // 使用通用搜索过滤函数（精准查询）
+            const filteredData = filterData(searchTerm, true);
+            
+            // 显示当前激活工作表的搜索结果数量
+            let resultMessage = '';
+            if (searchTerm) {
+                if (activeSheetName && filteredData[activeSheetName]) {
+                    const currentSheetResults = filteredData[activeSheetName].length;
+                    if (currentSheetResults > 0) {
+                        resultMessage = `<p class="success">在工作表 "${activeSheetName}" 中找到 ${currentSheetResults} 条精确匹配记录</p>`;
+                    } else {
+                        resultMessage = `<p class="error">在工作表 "${activeSheetName}" 中未找到精确匹配的记录</p>`;
+                    }
+                } else {
+                    // 如果没有激活的工作表，显示总结果
+                    let totalResults = 0;
+                    for (const sheetName in filteredData) {
+                        totalResults += filteredData[sheetName].length;
+                    }
+                    
+                    if (totalResults > 0) {
+                        resultMessage = `<p class="success">找到 ${totalResults} 条精确匹配记录</p>`;
+                    } else {
+                        resultMessage = '<p class="error">未找到精确匹配的记录</p>';
                     }
                 }
             }
@@ -983,8 +1142,8 @@
                 // 获取当前工作表的匹配记录数量
                 let matchCount = 0;
                 if (originalMergedData && originalMergedData[sheetName]) {
-                    // 如果有搜索词，计算匹配数量
-                    const filteredData = filterData(searchTerm);
+                    // 如果有搜索词，计算匹配数量，保持搜索模式
+                    const filteredData = filterData(searchTerm, isPreciseSearch);
                     matchCount = filteredData[sheetName].length;
                 }
                 
@@ -1130,8 +1289,8 @@
                 return;
             }
             
-            // 使用通用搜索过滤函数获取匹配数据
-            const filteredData = filterData(searchTerm);
+            // 使用通用搜索过滤函数获取匹配数据，保持搜索模式
+            const filteredData = filterData(searchTerm, isPreciseSearch);
             
             // 计算当前工作表的匹配记录数量
             let matchCount = 0;
@@ -1142,9 +1301,15 @@
             // 更新结果提示信息
             const resultElement = document.getElementById('result');
             if (matchCount > 0) {
-                resultElement.innerHTML = `<p class="success">在工作表 "${sheetName}" 中找到 ${matchCount} 条匹配记录</p>`;
+                const message = isPreciseSearch ? 
+                    `<p class="success">在工作表 "${sheetName}" 中找到 ${matchCount} 条精确匹配记录</p>` : 
+                    `<p class="success">在工作表 "${sheetName}" 中找到 ${matchCount} 条匹配记录</p>`;
+                resultElement.innerHTML = message;
             } else {
-                resultElement.innerHTML = `<p class="error">在工作表 "${sheetName}" 中未找到匹配的记录</p>`;
+                const message = isPreciseSearch ? 
+                    `<p class="error">在工作表 "${sheetName}" 中未找到精确匹配的记录</p>` : 
+                    `<p class="error">在工作表 "${sheetName}" 中未找到匹配的记录</p>`;
+                resultElement.innerHTML = message;
             }
         }
         
@@ -1159,7 +1324,7 @@
             
             // 重新应用搜索过滤
             const searchTerm = getSearchTerm();
-            const filteredData = filterData(searchTerm);
+            const filteredData = filterData(searchTerm, isPreciseSearch);
             
             // 更新当前工作表的总页数
             totalPages[sheetName] = Math.ceil(filteredData[sheetName].length / pageSize[sheetName]);
@@ -1184,8 +1349,8 @@
             // 获取当前搜索词
             const searchTerm = getSearchTerm();
             
-            // 使用通用搜索过滤函数
-            const filteredData = filterData(searchTerm);
+            // 使用通用搜索过滤函数，保持搜索模式
+            const filteredData = filterData(searchTerm, isPreciseSearch);
             
             // 重新渲染表格以保持高亮效果和显示模式
             renderMergedDataBelow(filteredData);
@@ -1238,8 +1403,8 @@
             if (originalMergedData && Object.keys(originalMergedData).length > 0) {
                 // 获取当前搜索词
                 const searchTerm = getSearchTerm();
-                // 使用通用搜索过滤函数
-                const filteredData = filterData(searchTerm);
+                // 使用通用搜索过滤函数，保持搜索模式
+                const filteredData = filterData(searchTerm, isPreciseSearch);
                 // 重新渲染表格
                 renderMergedDataBelow(filteredData);
             }
