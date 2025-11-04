@@ -1254,7 +1254,7 @@
                     mergedDataHTML += '    <div class="pagination-controls">';
                     mergedDataHTML += '        <button class="page-btn" id="firstPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', 1)">首页</button>';
                     mergedDataHTML += '        <button class="page-btn" id="prevPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', currentPage[\'' + sheetName + '\'] - 1)">上一页</button>';
-                    mergedDataHTML += '        <span class="page-info" id="pageInfo-' + sheetName + '">第 <span id="current-' + sheetName + '">' + currentPage[sheetName] + '</span> 页，共 <span id="total-' + sheetName + '">' + totalPages[sheetName] + '</span> 页</span>';
+                    mergedDataHTML += '        <span class="page-info" id="pageInfo-' + sheetName + '"><span id="current-' + sheetName + '">' + currentPage[sheetName] + '</span> / <span id="total-' + sheetName + '">' + totalPages[sheetName];
                     mergedDataHTML += '        <button class="page-btn" id="nextPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', currentPage[\'' + sheetName + '\'] + 1)">下一页</button>';
                     mergedDataHTML += '        <button class="page-btn" id="lastPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', totalPages[\'' + sheetName + '\'])">末页</button>';
                     mergedDataHTML += '    </div>';
