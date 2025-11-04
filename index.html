@@ -363,7 +363,6 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin: 20px 0;
             padding: 15px;
             background-color: #f8f9fa;
             border-radius: 8px;
@@ -741,8 +740,6 @@
                         // 详细遍历每个工作表中的对象
                         traverseJSONData(jsonData);
                         
-                        // 显示成功消息
-                        document.getElementById('result').innerHTML = '<p class="success">已成功加载默认测试文件</p>';
                     } catch (error) {
                         // 处理文件读取或解析错误
                         document.getElementById('result').innerHTML = '<p class="error">读取默认测试文件时出错: ' + error.message + '</p>';
