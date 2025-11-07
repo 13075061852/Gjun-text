@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>读取Excel文件数据</title>
     <!-- 预加载关键资源 -->
     <link rel="preconnect" href="https://cdn.bootcdn.net">
@@ -10,44 +10,42 @@
         /* 全局样式设置 */
         * {
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent; /* 移除触摸高亮 */
         }
         
         /* 页面基本样式设置 */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             max-width: 100%;
             margin: 0 auto;
-            padding: 15px;
-            overflow: auto;
+            padding: 20px;
+            overflow: auto; /* 页面水平和垂直滚动 */
             background-color: #f8f9fa;
-            -webkit-font-smoothing: antialiased; /* 字体抗锯齿 */
-            -moz-osx-font-smoothing: grayscale;
         }
     
         /* 控制区域容器 */
         .control-panel {
             background: white;
-            border-radius: 12px;
+            border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
             display: flex;
-            flex-direction: column;
+            align-items: center;
             gap: 15px;
+            flex-wrap: wrap;
         }
         
         /* 文件选择区域 */
         .file-selection {
             display: flex;
-            flex-direction: column;
-            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 15px;
         }
         
         .file-selection label {
             font-weight: 600;
             color: #34495e;
-            font-size: 16px;
         }
         
         /* 隐藏默认文件输入框 */
@@ -57,90 +55,109 @@
         
         /* 自定义文件选择按钮样式 */
         .custom-file-upload {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 18px;
-            color: #3498db;
+            display: inline-block;
+            padding: 14px 15px;
+            color: black;
             border: 2px dashed #3498db;
-            border-radius: 10px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 600;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             text-align: center;
-            min-height: 70px;
-            transition: all 0.3s ease;
-            touch-action: manipulation; /* 改善触摸响应 */
+            min-width: 150px;
+            width: 100%;
         }
         
         /* 精准查询按钮样式 */
         #preciseSearchBtn {
             height: 50px;
-            width: 90px;
             font-size: 16px;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background-color 0.3s;
-            touch-action: manipulation;
-        }
-        
-        #preciseSearchBtn:hover {
-            background-color: #2980b9;
+            width: 120px;
+            padding: 5px;
         }
         
         /* 拖拽区域样式 */
         .custom-file-upload.dragover {
             background-color: #e1f0fa;
             border: 2px dashed #2980b9;
-            color: #2980b9;
+            color: black;
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
         }
 
         /* 搜索区域 */ 
         #searchInput {
             padding: 14px 15px;
+            min-width: 258px;
             border: 2px solid #3498db;
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 16px;
             transition: border-color 0.3s;
-            width: 90%;
-            max-width: 400px;
-            touch-action: manipulation;
+            width: 100%;
         }
         
         /* 搜索框区域 */
         .search-box {
             display: flex;
+            align-items: center;
             gap: 10px;
         }
-
+        
+        /* 响应式设计 - 小屏幕 */
+        @media (max-width: 768px) {
+            .search-box {
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            #searchInput {
+                min-width: auto;
+            }
+            
+            #preciseSearchBtn {
+                height: auto;
+                padding: 14px 15px;
+                margin-left: 0;
+            }
+        }
+        
+        /* 搜索框获得焦点时的样式 */
+        #searchInput:focus {
+            outline: none;
+            border-color: #2980b9;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        /* 搜索提示文本样式 */
+        .search-hint {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
         /* 表格基本样式 */
         table {
             border-collapse: collapse;
-            width: 100%;
+            width: auto; /* 根据内容自动调整宽度 */
             margin: 20px 0;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             border-radius: 8px;
             overflow: hidden;
-            table-layout: auto;
+            table-layout: auto; /* 自动表格布局，允许单元格根据内容调整宽度 */
         }
         
         /* 表格单元格样式 */
         th, td {
             border: 1px solid #ddd;
-            padding: 12px 10px;
-            text-align: center;
-            vertical-align: middle;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            min-width: 60px;
-            font-size: 14px;
+            padding: 12px 15px;
+            text-align: center; /* 水平居中 */
+            vertical-align: middle; /* 垂直居中 */
+            white-space: nowrap; /* 不换行 */
+            overflow: visible; /* 允许内容溢出 */
+            text-overflow: clip; /* 不显示省略号，显示完整内容 */
+            min-width: 80px; /* 设置最小宽度 */
         }
         
         /* 表头样式 */
@@ -149,16 +166,16 @@
             color: white;
             font-weight: bold;
             text-align: center;
-            position: sticky;
-            top: 0;
-            z-index: 10;
+            position: sticky; /* 固定表头 */
+            top: 0; /* 固定在顶部 */
+            z-index: 10; /* 确保表头在其他元素之上 */
         }
         
         /* 确保表头在容器内也能固定 */
         .table-wrapper thead th {
             position: sticky !important;
             top: 0 !important;
-            background-color: #3498db;
+            background-color: #3498db; /* 确保背景色不被覆盖 */
         }
         
         /* 额外确保表头固定 */
@@ -171,8 +188,6 @@
         .table-wrapper {
             overflow: auto;
             position: relative;
-            max-width: 100%;
-            border-radius: 8px;
         }
         
         /* 最终确保表头固定 */
@@ -200,22 +215,20 @@
         .error {
             color: #e74c3c;
             background-color: #fdeded;
-            padding: 14px;
-            border-radius: 8px;
+            padding: 12px;
+            border-radius: 6px;
             border-left: 4px solid #e74c3c;
             margin: 15px 0;
-            font-size: 14px;
         }
         
         /* 成功提示样式 */
         .success {
             color: #27ae60;
             background-color: #e8f7f0;
-            padding: 14px;
-            border-radius: 8px;
+            padding: 12px;
+            border-radius: 6px;
             border-left: 4px solid #27ae60;
             margin: 15px 0;
-            font-size: 14px;
         }
         
         /* 合并数据表格样式 */
@@ -227,8 +240,44 @@
         .merged-data-table h2 {
             color: #333;
             border-bottom: 2px solid #3498db;
-            padding-bottom: 12px;
-            font-size: 20px;
+            padding-bottom: 10px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 540px) {
+            /* 控制面板在小屏幕上的样式 */
+            .control-panel {
+                padding: 15px;
+            }
+            
+            /* 文件选择区域在小屏幕上的样式 */
+            .file-selection {
+                width: 100%;
+            }
+            
+            /* 搜索框区域在小屏幕上的样式 */
+            .search-box {
+                width: 100%;
+            }
+            
+            /* 表格在小屏幕上的样式 */
+            table {
+                font-size: 14px;
+            }
+            
+            /* 表格单元格在小屏幕上的样式 */
+            th, td {
+                padding: 8px 10px;
+                min-width: 60px;
+            }
+            
+            /* 文件上传按钮在小屏幕上的样式 */
+            .custom-file-upload {
+                height: 70px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
         }
         
         /* 标签页样式 */
@@ -246,16 +295,14 @@
         
         /* 标签按钮样式 */
         .tab-button {
-            padding: 10px;
+            padding: 12px 20px;
             background-color: #f1f8ff;
-            border: 1px solid #ddd;
+            border: none;
             cursor: pointer;
             border-radius: 6px 6px 0 0;
             transition: all 0.3s;
             white-space: nowrap;
             font-weight: 500;
-            font-size: 14px;
-            touch-action: manipulation;
         }
         
         /* 标签按钮悬停效果 */
@@ -282,10 +329,10 @@
         
         /* 滚动条容器 */
         .table-wrapper {
-            overflow-x: auto;
-            overflow-y: visible;
+            overflow-x: auto; /* 只允许水平滚动 */
+            overflow-y: visible; /* 禁用垂直滚动 */
             width: 100%;
-            position: relative;
+            position: relative; /* 确保容器定位上下文正确 */
         }
         
         /* 页面内容容器 */
@@ -320,40 +367,36 @@
             background-color: #f8f9fa;
             border-radius: 8px;
             flex-wrap: wrap;
-            gap: 10px;
         }
         
         .pagination-info {
-            margin-right: 10px;
+            margin-right: 20px;
+            margin-bottom: 20px;
         }
         
         .page-size-select {
-            padding: 6px 10px;
+            padding: 5px 10px;
             border: 1px solid #ddd;
             border-radius: 4px;
             background-color: white;
-            font-size: 14px;
-            touch-action: manipulation;
         }
         
         .pagination-controls {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 10px;
+            margin-bottom: 20px;
         }
         
         .page-btn {
+            padding: 5px;
             background-color: #3498db;
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             transition: background-color 0.3s;
-            min-width: 44px;
-            touch-action: manipulation;
-            padding: 10px;
-            transition: all 0.3s;
         }
         
         .page-btn:hover:not(:disabled) {
@@ -373,8 +416,6 @@
         .page-info {
             font-weight: 500;
             color: #34495e;
-            font-size: 14px;
-            white-space: nowrap;
         }
         
         .page-info span {
@@ -396,9 +437,7 @@
         
         /* 模式切换按钮容器 */
         .mode-toggle-container {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
+            margin-top: 20px;
         }
         
         /* 自定义提示信息样式 */
@@ -406,18 +445,14 @@
             position: absolute;
             background-color: #333;
             color: white;
-            padding: 10px 14px;
-            border-radius: 6px;
+            padding: 8px 12px;
+            border-radius: 4px;
             white-space: nowrap;
             z-index: 1000;
-            font-size: 12px;
+            font-size: 14px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
             pointer-events: none;
             transform: translateX(-50%);
-            max-width: 80vw;
-            word-wrap: break-word;
-            white-space: normal;
-            text-align: center;
         }
         
         /* 提示信息小箭头 */
@@ -438,77 +473,7 @@
             border-color: transparent transparent #333 transparent;
         }
         
-        /* 移动端特殊样式 */
-        .mobile-device .control-panel {
-            padding: 16px;
-        }
-        
-        .mobile-device .custom-file-upload {
-            min-height: 80px;
-            font-size: 16px;
-        }
-        
-        .mobile-device #searchInput {
-            font-size: 16px;
-        }
-        
-        .mobile-device .tab-button {
-            padding: 12px 15px;
-            font-size: 14px;
-        }
-        
-        .mobile-device .page-btn {
-            min-height: 44px;
-            font-size: 13px;
-        }
-        
-        /* 触摸设备样式 */
-        .touch-device .tab-button,
-        .touch-device .page-btn,
-        .touch-device #preciseSearchBtn {
-            transition: none;
-        }
-        
-        /* 防止文本选择 */
-        .tab-button,
-        .page-btn,
-        #preciseSearchBtn {
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -khtml-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-        }
 
-        /* iOS Safari 修复 */
-        input[type="file"] {
-            position: absolute;
-            left: -9999px;
-        }
-        
-        /* 表格横向滚动提示 */
-        .table-scroll-hint {
-            text-align: center;
-            color: #7f8c8d;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
-
-        /* 小屏显示 */
-        @media (max-width: 600px) {
-            .tab-button {
-                padding: 5px;
-            }
-            .page-btn {
-                padding: 5px;
-            }
-            table th,td{
-                padding: 6px;
-                transition: all 0.3s;
-            }
-        }
     </style>
 </head>
 <body>
@@ -518,14 +483,14 @@
         <div class="file-selection">
             <input type="file" id="fileInput" accept=".xlsx, .xls">
             <label for="fileInput" class="custom-file-upload" id="uploadButton">
-                <span>点击选择文件或拖拽到此处</span>
+                <span>选择或拖拽文件到此处</span>
             </label>
         </div>
         
         <!-- 搜索区域 -->
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="输入型号或批次关键字进行搜索">
-            <button id="preciseSearchBtn" onclick="handlePreciseSearch()">精准查询</button>
+            <button id="preciseSearchBtn" class="page-btn" onclick="handlePreciseSearch()">精准查询</button>
         </div>
     </div>
     
@@ -751,85 +716,45 @@
                 return;
             }
             
-            // 显示加载提示
-            document.getElementById('result').innerHTML = '<p class="loading">正在加载</p>';
+            // 创建XMLHttpRequest对象来加载本地测试文件
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', '测试数据.xlsx', true);
+            xhr.responseType = 'arraybuffer';
             
-            try {
-                // 创建XMLHttpRequest对象来加载本地测试文件
-                const xhr = new XMLHttpRequest();
-                // 使用相对路径并确保编码正确
-                xhr.open('GET', './%E6%B5%8B%E8%AF%95%E6%95%B0%E6%8D%AE.xlsx', true);
-                xhr.responseType = 'arraybuffer';
-                xhr.timeout = 10000; // 设置10秒超时
-                
-                xhr.onload = function(e) {
-                    if (xhr.status === 200) {
-                        try {
-                            // 检查响应数据
-                            if (!xhr.response) {
-                                throw new Error('文件响应为空');
-                            }
-                            
-                            // 将文件数据转换为Uint8Array格式
-                            const data = new Uint8Array(xhr.response);
-                            console.log('文件大小:', data.length, '字节');
-                            
-                            if (data.length === 0) {
-                                throw new Error('文件内容为空');
-                            }
-                            
-                            // 使用SheetJS读取Excel工作簿
-                            const workbook = XLSX.read(data, {type: 'array'});
-                            console.log('工作簿:', workbook);
-                            
-                            // 检查是否有工作表
-                            if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-                                throw new Error('Excel文件中没有找到工作表');
-                            }
-                            
-                            // 将工作簿转换为JSON格式
-                            const jsonData = convertWorkbookToJSON(workbook);
-                            
-                            // 在浏览器控制台打印JSON数据
-                            console.log('Excel数据 (JSON格式):', jsonData);
-                            
-                            // 检查是否有数据
-                            if (!jsonData || Object.keys(jsonData).length === 0) {
-                                throw new Error('Excel文件中没有数据');
-                            }
-                            
-                            // 清除加载提示
-                            document.getElementById('result').innerHTML = '';
-                            
-                            // 详细遍历每个工作表中的对象
-                            traverseJSONData(jsonData);
-                            
-                        } catch (error) {
-                            // 处理文件读取或解析错误
-                            console.error('读取默认测试文件时出错:', error);
-                            document.getElementById('result').innerHTML = '<p class="error">读取默认测试文件时出错: ' + error.message + '</p>';
-                        }
-                    } else {
-                        console.error('无法加载默认测试文件，状态码:', xhr.status);
-                        document.getElementById('result').innerHTML = '<p class="error">无法加载默认测试文件，请确保文件存在且可访问，错误代码: ' + xhr.status + '</p>';
+            xhr.onload = function(e) {
+                if (xhr.status === 200) {
+                    try {
+                        // 将文件数据转换为Uint8Array格式
+                        const data = new Uint8Array(xhr.response);
+                        console.log(data);
+                        
+                        // 使用SheetJS读取Excel工作簿
+                        const workbook = XLSX.read(data, {type: 'array'});
+                        console.log(workbook);
+                        
+                        // 将工作簿转换为JSON格式
+                        const jsonData = convertWorkbookToJSON(workbook);
+                        
+                        // 在浏览器控制台打印JSON数据
+                        console.log('Excel数据 (JSON格式):', jsonData);
+                        
+                        // 详细遍历每个工作表中的对象
+                        traverseJSONData(jsonData);
+                        
+                    } catch (error) {
+                        // 处理文件读取或解析错误
+                        document.getElementById('result').innerHTML = '<p class="error">读取默认测试文件时出错: ' + error.message + '</p>';
                     }
-                };
-                
-                xhr.onerror = function() {
-                    console.error('加载默认测试文件失败');
-                    document.getElementById('result').innerHTML = '<p class="error">加载默认测试文件失败，请检查文件路径和服务器配置</p>';
-                };
-                
-                xhr.ontimeout = function() {
-                    console.error('加载默认测试文件超时');
-                    document.getElementById('result').innerHTML = '<p class="error">加载默认测试文件超时，请检查网络连接</p>';
-                };
-                
-                xhr.send();
-            } catch (error) {
-                console.error('加载默认测试文件时发生异常:', error);
-                document.getElementById('result').innerHTML = '<p class="error">加载默认测试文件时发生异常: ' + error.message + '</p>';
-            }
+                } else {
+                    document.getElementById('result').innerHTML = '<p class="error">无法加载默认测试文件，请确保文件存在</p>';
+                }
+            };
+            
+            xhr.onerror = function() {
+                document.getElementById('result').innerHTML = '<p class="error">加载默认测试文件失败</p>';
+            };
+            
+            xhr.send();
         }
         
         /**
@@ -1264,10 +1189,11 @@
                     // 创建表头
                     mergedDataHTML += '<thead><tr>';
                     allKeys.forEach(key => {
-                        // 在移动端使用较短的表头文本
-                        const headerText = key.length > 10 && window.innerWidth <= 768 ? 
-                            key.substring(0, 8) + '...' : key;
-                        mergedDataHTML += `<th title="${key}">${headerText}</th>`;
+                        // 根据内容长度设置列宽
+                        const contentLength = key.length;
+                        const estimatedWidth = Math.max(contentLength * 10, 80); // 估算宽度，最小80px
+                        // 表头不需要高亮
+                        mergedDataHTML += `<th style="width: ${estimatedWidth}px;">${key}</th>`;
                     });
                     mergedDataHTML += '</tr></thead>';
                     
@@ -1280,6 +1206,7 @@
                         allKeys.forEach(key => {
                             const value = row[key];
                             let displayValue = '';
+                            let tooltip = ''; // 用于存储提示信息
                             
                             if (value === undefined || value === null) {
                                 displayValue = '';
@@ -1287,30 +1214,26 @@
                                 // 根据显示模式决定如何显示数据
                                 const average = calculateAverage(value);
                                 if (displayMode === 'average') {
-                                    // 默认显示平均值
-                                    displayValue = `<span class="average-value">${average.toFixed(2)}</span>`;
+                                    // 默认显示平均值，并添加鼠标悬停提示信息
+                                    displayValue = `<span class="average-value" data-tooltip="${value.map(v => `[${v}]`).join(' ')}">${average.toFixed(2)}</span>`;
                                 } else {
-                                    // 在移动端显示简化版本
-                                    if (window.innerWidth <= 768) {
-                                        displayValue = `${value.length}项 (<span class="average-value">${average.toFixed(2)}</span>)`;
-                                    } else {
-                                        // 显示所有参数值
-                                        const bracketValues = value.map(v => 
-                                            `<span class="param-value">[${highlightSearchTerm(v, searchTerm)}]</span>`
-                                        ).join('');
-                                        displayValue = `${bracketValues} (<span class="average-value">${average.toFixed(2)}</span>)`;
-                                    }
+                                    // 显示所有参数值
+                                    const bracketValues = value.map(v => 
+                                        `<span class="param-value">[${highlightSearchTerm(v, searchTerm)}]</span>`
+                                    ).join('');
+                                    displayValue = `${bracketValues} (<span class="average-value">${average.toFixed(2)}</span>)`;
                                 }
                             } else {
-                                // 对普通值进行高亮处理，移动端截断长文本
-                                let textValue = value.toString();
-                                if (window.innerWidth <= 768 && textValue.length > 15) {
-                                    textValue = textValue.substring(0, 12) + '...';
-                                }
-                                displayValue = highlightSearchTerm(textValue, searchTerm);
+                                // 对普通值进行高亮处理
+                                displayValue = highlightSearchTerm(value, searchTerm);
                             }
                             
-                            mergedDataHTML += `<td title="${value}">${displayValue}</td>`;
+                            // 根据内容长度设置单元格宽度
+                            const contentLength = displayValue.length;
+                            const estimatedWidth = Math.max(contentLength * 8, 80); // 估算宽度，最小80px
+                            // 如果有提示信息，使用data-tooltip属性
+                            const tooltipAttr = tooltip ? ` data-tooltip="${tooltip}"` : '';
+                            mergedDataHTML += `<td style="width: ${estimatedWidth}px;"${tooltipAttr}>${displayValue}</td>`;
                         });
                         
                         mergedDataHTML += '</tr>';
@@ -1318,26 +1241,22 @@
                     mergedDataHTML += '</tbody></table>';
                     mergedDataHTML += '</div>'; // 关闭滚动容器
                     
-                    // 添加移动端滚动提示
-                    if (window.innerWidth <= 768 && allKeys.size > 3) {
-                        mergedDataHTML += '<div class="table-scroll-hint">← 左右滑动查看表格内容 →</div>';
-                    }
-                    
                     // 添加分页控件
                     mergedDataHTML += '<div class="pagination-container">';
                     mergedDataHTML += '    <div class="pagination-info">';
-                    mergedDataHTML += '        <span>每页 <select id="pageSizeSelect-' + sheetName + '" class="page-size-select" onchange="changePageSize(\'' + sheetName + '\')">';
-                    mergedDataHTML += '            <option value="5" ' + (pageSize[sheetName] == 5 ? 'selected' : '') + '>5</option>';
+                    mergedDataHTML += '        <span>每页显示 <select id="pageSizeSelect-' + sheetName + '" class="page-size-select" onchange="changePageSize(\'' + sheetName + '\')">';
                     mergedDataHTML += '            <option value="10" ' + (pageSize[sheetName] == 10 ? 'selected' : '') + '>10</option>';
                     mergedDataHTML += '            <option value="15" ' + (pageSize[sheetName] == 15 ? 'selected' : '') + '>15</option>';
                     mergedDataHTML += '            <option value="20" ' + (pageSize[sheetName] == 20 ? 'selected' : '') + '>20</option>';
-                    mergedDataHTML += '        </select> 条</span>';
+                    mergedDataHTML += '            <option value="25" ' + (pageSize[sheetName] == 25 ? 'selected' : '') + '>25</option>';
+                    mergedDataHTML += '            <option value="30" ' + (pageSize[sheetName] == 30 ? 'selected' : '') + '>30</option>';
+                    mergedDataHTML += '        </select> 条记录</span>';
                     mergedDataHTML += '    </div>';
                     mergedDataHTML += '    <div class="pagination-controls">';
                     mergedDataHTML += '        <button class="page-btn" id="firstPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', 1)">首页</button>';
-                    mergedDataHTML += '        <button class="page-btn" id="prevPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', Math.max(1, currentPage[\'' + sheetName + '\'] - 1))">上页</button>';
-                    mergedDataHTML += '        <span class="page-info"><span id="current-' + sheetName + '">' + currentPage[sheetName] + '</span>/<span id="total-' + sheetName + '">' + totalPages[sheetName] + '</span></span>';
-                    mergedDataHTML += '        <button class="page-btn" id="nextPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', Math.min(totalPages[\'' + sheetName + '\'], currentPage[\'' + sheetName + '\'] + 1))">下页</button>';
+                    mergedDataHTML += '        <button class="page-btn" id="prevPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', currentPage[\'' + sheetName + '\'] - 1)">上一页</button>';
+                    mergedDataHTML += '        <span class="page-info" id="pageInfo-' + sheetName + '"><span id="current-' + sheetName + '">' + currentPage[sheetName] + '</span> / <span id="total-' + sheetName + '">' + totalPages[sheetName];
+                    mergedDataHTML += '        <button class="page-btn" id="nextPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', currentPage[\'' + sheetName + '\'] + 1)">下一页</button>';
                     mergedDataHTML += '        <button class="page-btn" id="lastPage-' + sheetName + '" onclick="changePage(\'' + sheetName + '\', totalPages[\'' + sheetName + '\'])">末页</button>';
                     mergedDataHTML += '    </div>';
                     mergedDataHTML += '</div>';
