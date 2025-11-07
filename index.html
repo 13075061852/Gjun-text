@@ -497,10 +497,7 @@
 
         /* 小屏显示 */
         @media (max-width: 600px) {
-            .tab-button {
-                padding: 5px;
-            }
-            .page-btn {
+            .page-btn,.tab-button {
                 padding: 5px;
                 font-size: 12px;
             }
@@ -518,8 +515,17 @@
                 gap: 10px;
                 margin-bottom: 10px;
             }
-            .mode-toggle-container,table{
+            table {
+                margin: 10px 0;
+            }
+            .mode-toggle-container{
                 margin-top: 10px;
+            }
+            .pagination-container{
+                padding: 10px;
+            }
+            .mode-toggle-container{
+                gap:0px;
             }
         }
     </style>
