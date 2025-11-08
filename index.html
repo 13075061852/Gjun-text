@@ -580,7 +580,9 @@
         document.getElementById('fileInput').addEventListener('change', handleFile);
         
         // 为搜索框添加实时输入事件监听器
-        document.getElementById('searchInput').addEventListener('input', handleSearch);
+        document.getElementById('searchInput').addEventListener('input', function() {
+            handleSearch(false);
+        });
         
         // 添加拖拽上传功能到自定义按钮
         const uploadButton = document.getElementById('uploadButton');
