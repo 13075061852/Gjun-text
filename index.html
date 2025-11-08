@@ -154,20 +154,7 @@
             z-index: 10;
         }
         
-        /* 确保表头在容器内也能固定 */
-        .table-wrapper thead th {
-            position: sticky !important;
-            top: 0 !important;
-            background-color: #3498db;
-        }
-        
-        /* 额外确保表头固定 */
-        table thead {
-            position: sticky;
-            top: 0;
-        }
-        
-        /* 确保表格容器正确设置 */
+        /* 表格容器和表头样式 */
         .table-wrapper {
             overflow: auto;
             position: relative;
@@ -175,10 +162,10 @@
             border-radius: 8px;
         }
         
-        /* 最终确保表头固定 */
-        .table-wrapper table thead th {
+        .table-wrapper thead th {
             position: sticky !important;
             top: 0 !important;
+            background-color: #3498db;
         }
         
         /* 表格数据行样式 */
@@ -497,37 +484,42 @@
 
         /* 小屏显示 */
         @media (max-width: 600px) {
-            .page-btn,.tab-button,.page-size-select{
+            .page-btn, .tab-button, .page-size-select {
                 padding: 5px;
                 font-size: 12px;
             }
-            #preciseSearchBtn,#searchInput{
+            
+            #preciseSearchBtn, #searchInput {
                 font-size: 14px;
                 height: 40px;
                 transition: 0.3s all;
             }
-            table th,td{
+            
+            table th, table td {
                 padding: 6px;
                 transition: all 0.3s;
             }
-            .control-panel{
+            
+            .control-panel {
                 padding: 10px;
                 gap: 10px;
                 margin-bottom: 10px;
             }
+            
             table {
                 margin: 10px 0;
             }
-            .mode-toggle-container{
+            
+            .mode-toggle-container {
                 margin-top: 10px;
+                gap: 0px;
             }
-            .pagination-container{
+            
+            .pagination-container {
                 padding: 10px 0;
             }
-            .mode-toggle-container{
-                gap:0px;
-            }
-            .file-selection{
+            
+            .file-selection {
                 display: none;
             }
         }
@@ -911,31 +903,38 @@
         }
         
         /**
-         * 处理实时搜索功能 - 对型号和批次进行模糊查询
+         * 处理搜索功能
+         * @param {boolean} isPrecise - 是否为精准查询
          */
-        function handleSearch() {
+        function handleSearch(isPrecise = false) {
             const searchTerm = document.getElementById('searchInput').value.trim();
             
-            // 设置搜索模式为模糊查询
-            isPreciseSearch = false;
+            // 设置搜索模式
+            isPreciseSearch = isPrecise;
             
             // 如果没有原始数据，直接返回
             if (!originalMergedData || Object.keys(originalMergedData).length === 0) {
                 return;
             }
             
-            // 使用通用搜索过滤函数（模糊查询）
-            const filteredData = filterData(searchTerm, false);
+            // 如果是精准查询且搜索词为空，直接返回
+            if (isPrecise && !searchTerm) {
+                return;
+            }
+            
+            // 使用通用搜索过滤函数
+            const filteredData = filterData(searchTerm, isPrecise);
             
             // 显示当前激活工作表的搜索结果数量
             let resultMessage = '';
             if (searchTerm) {
                 if (activeSheetName && filteredData[activeSheetName]) {
                     const currentSheetResults = filteredData[activeSheetName].length;
+                    const messageType = isPrecise ? '精确匹配' : '匹配';
                     if (currentSheetResults > 0) {
-                        resultMessage = `<p class="success">在工作表 "${activeSheetName}" 中找到 ${currentSheetResults} 条匹配记录</p>`;
+                        resultMessage = `<p class="success">在工作表 "${activeSheetName}" 中找到 ${currentSheetResults} 条${messageType}记录</p>`;
                     } else {
-                        resultMessage = `<p class="error">在工作表 "${activeSheetName}" 中未找到匹配的记录</p>`;
+                        resultMessage = `<p class="error">在工作表 "${activeSheetName}" 中未找到${messageType}的记录</p>`;
                     }
                 } else {
                     // 如果没有激活的工作表，显示总结果
@@ -944,10 +943,11 @@
                         totalResults += filteredData[sheetName].length;
                     }
                     
+                    const messageType = isPrecise ? '精确匹配' : '匹配';
                     if (totalResults > 0) {
-                        resultMessage = `<p class="success">找到 ${totalResults} 条匹配记录</p>`;
+                        resultMessage = `<p class="success">找到 ${totalResults} 条${messageType}记录</p>`;
                     } else {
-                        resultMessage = '<p class="error">未找到匹配的记录</p>';
+                        resultMessage = `<p class="error">未找到${messageType}的记录</p>`;
                     }
                 }
             }
@@ -966,52 +966,7 @@
          * 处理精准查询功能 - 输入内容和查询结果必须完全一致
          */
         function handlePreciseSearch() {
-            const searchTerm = document.getElementById('searchInput').value.trim();
-            
-            // 设置搜索模式为精准查询
-            isPreciseSearch = true;
-            
-            // 如果没有原始数据或搜索词为空，直接返回
-            if (!originalMergedData || Object.keys(originalMergedData).length === 0 || !searchTerm) {
-                return;
-            }
-            
-            // 使用通用搜索过滤函数（精准查询）
-            const filteredData = filterData(searchTerm, true);
-            
-            // 显示当前激活工作表的搜索结果数量
-            let resultMessage = '';
-            if (searchTerm) {
-                if (activeSheetName && filteredData[activeSheetName]) {
-                    const currentSheetResults = filteredData[activeSheetName].length;
-                    if (currentSheetResults > 0) {
-                        resultMessage = `<p class="success">在工作表 "${activeSheetName}" 中找到 ${currentSheetResults} 条精确匹配记录</p>`;
-                    } else {
-                        resultMessage = `<p class="error">在工作表 "${activeSheetName}" 中未找到精确匹配的记录</p>`;
-                    }
-                } else {
-                    // 如果没有激活的工作表，显示总结果
-                    let totalResults = 0;
-                    for (const sheetName in filteredData) {
-                        totalResults += filteredData[sheetName].length;
-                    }
-                    
-                    if (totalResults > 0) {
-                        resultMessage = `<p class="success">找到 ${totalResults} 条精确匹配记录</p>`;
-                    } else {
-                        resultMessage = '<p class="error">未找到精确匹配的记录</p>';
-                    }
-                }
-            }
-            
-            const resultElement = document.getElementById('result');
-            resultElement.innerHTML = resultMessage;
-            
-            // 重置分页数据
-            initPaginationData(filteredData);
-            
-            // 重新渲染表格以显示高亮效果并保持显示模式
-            renderMergedDataBelow(filteredData);
+            handleSearch(true);
         }
         
         /**
@@ -1397,16 +1352,37 @@
             // 更新结果提示信息
             const resultElement = document.getElementById('result');
             if (matchCount > 0) {
-                const message = isPreciseSearch ? 
-                    `<p class="success">在工作表 "${sheetName}" 中找到 ${matchCount} 条精确匹配记录</p>` : 
-                    `<p class="success">在工作表 "${sheetName}" 中找到 ${matchCount} 条匹配记录</p>`;
-                resultElement.innerHTML = message;
+                const messageType = isPreciseSearch ? '精确匹配' : '匹配';
+                resultElement.innerHTML = `<p class="success">在工作表 "${sheetName}" 中找到 ${matchCount} 条${messageType}记录</p>`;
             } else {
-                const message = isPreciseSearch ? 
-                    `<p class="error">在工作表 "${sheetName}" 中未找到精确匹配的记录</p>` : 
-                    `<p class="error">在工作表 "${sheetName}" 中未找到匹配的记录</p>`;
-                resultElement.innerHTML = message;
+                const messageType = isPreciseSearch ? '精确匹配' : '匹配';
+                resultElement.innerHTML = `<p class="error">在工作表 "${sheetName}" 中未找到${messageType}的记录</p>`;
             }
+        }
+        
+        /**
+         * 更新分页数据并重新渲染表格
+         * @param {string} sheetName - 工作表名称
+         * @param {number} newPage - 新页码，如果不提供则不改变当前页
+         */
+        function updatePaginationAndRender(sheetName, newPage) {
+            // 如果提供了新页码，则更新当前页
+            if (newPage !== undefined) {
+                // 边界检查
+                if (newPage < 1 || newPage > totalPages[sheetName]) {
+                    return;
+                }
+                currentPage[sheetName] = newPage;
+            }
+            
+            // 获取当前搜索词
+            const searchTerm = getSearchTerm();
+            
+            // 使用通用搜索过滤函数，保持搜索模式
+            const filteredData = filterData(searchTerm, isPreciseSearch);
+            
+            // 重新渲染表格以保持高亮效果和显示模式
+            renderMergedDataBelow(filteredData);
         }
         
         /**
@@ -1435,21 +1411,7 @@
          * @param {number} page - 页码
          */
         function changePage(sheetName, page) {
-            // 边界检查
-            if (page < 1 || page > totalPages[sheetName]) {
-                return;
-            }
-            
-            currentPage[sheetName] = page;
-            
-            // 获取当前搜索词
-            const searchTerm = getSearchTerm();
-            
-            // 使用通用搜索过滤函数，保持搜索模式
-            const filteredData = filterData(searchTerm, isPreciseSearch);
-            
-            // 重新渲染表格以保持高亮效果和显示模式
-            renderMergedDataBelow(filteredData);
+            updatePaginationAndRender(sheetName, page);
         }
         
         /**
@@ -1457,29 +1419,20 @@
          * @param {string} sheetName - 工作表名称
          * @param {string} type - 标签页类型（'original' 或 'merged'）
          */
-        function switchTab(sheetName, type = 'original') {
+        function switchTab(sheetName, type = 'merged') {
             // 记录当前激活的工作表
             activeSheetName = sheetName;
             
-            let tabButtons, tabContents;
+            // 获取标签按钮和内容元素
+            const mergedDataContainer = document.getElementById('mergedDataContainer');
+            if (!mergedDataContainer) return;
             
-            if (type === 'merged') {
-                const mergedDataContainer = document.getElementById('mergedDataContainer');
-                if (!mergedDataContainer) return;
-                tabButtons = mergedDataContainer.querySelectorAll('.tab-button');
-                tabContents = mergedDataContainer.querySelectorAll('.tab-content');
-            } else {
-                tabButtons = document.querySelectorAll('.tab-button');
-                tabContents = document.querySelectorAll('.tab-content');
-            }
+            const tabButtons = mergedDataContainer.querySelectorAll('.tab-button');
+            const tabContents = mergedDataContainer.querySelectorAll('.tab-content');
             
             // 移除所有激活状态
-            tabButtons.forEach(button => {
-                button.classList.remove('active');
-            });
-            tabContents.forEach(content => {
-                content.classList.remove('active');
-            });
+            tabButtons.forEach(button => button.classList.remove('active'));
+            tabContents.forEach(content => content.classList.remove('active'));
             
             // 激活当前标签页
             const activeButton = Array.from(tabButtons).find(button => button.textContent.startsWith(sheetName + ' ('));
@@ -1487,7 +1440,7 @@
                 activeButton.classList.add('active');
             }
             
-            const activeContent = document.getElementById(`tab-${type === 'merged' ? 'merged-' : ''}${sheetName}`);
+            const activeContent = document.getElementById(`tab-merged-${sheetName}`);
             if (activeContent) {
                 activeContent.classList.add('active');
             }
