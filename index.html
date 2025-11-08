@@ -1312,16 +1312,11 @@
                                     // 默认显示平均值
                                     displayValue = `<span class="average-value">${average.toFixed(2)}</span>`;
                                 } else {
-                                    // 在移动端显示简化版本
-                                    if (window.innerWidth <= 768) {
-                                        displayValue = `${value.length}项 (<span class="average-value">${average.toFixed(2)}</span>)`;
-                                    } else {
-                                        // 显示所有参数值
-                                        const bracketValues = value.map(v => 
-                                            `<span class="param-value">[${highlightSearchTerm(v, searchTerm)}]</span>`
-                                        ).join('');
-                                        displayValue = `${bracketValues} (<span class="average-value">${average.toFixed(2)}</span>)`;
-                                    }
+                                    // 显示所有参数值，无论屏幕宽度
+                                    const bracketValues = value.map(v => 
+                                        `<span class="param-value">[${highlightSearchTerm(v, searchTerm)}]</span>`
+                                    ).join('');
+                                    displayValue = `${bracketValues} (<span class="average-value">${average.toFixed(2)}</span>)`;
                                 }
                             } else {
                                 // 对普通值进行高亮处理，移动端截断长文本
